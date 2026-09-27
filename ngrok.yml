@@ -1,0 +1,6 @@
+version: "3"
+
+tunnels:
+  teleop:
+    proto: http
+    addr: 8000
