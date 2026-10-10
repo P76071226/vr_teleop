@@ -4,8 +4,8 @@ A lightweight browser frontend for controlling a Franka Emika Panda simulation
 with Meta Quest 3 hand tracking. Wrist motion is converted into Cartesian pose
 targets, while a thumb-and-index pinch controls the gripper.
 
-> This repository contains the WebXR frontend and WebSocket proxy. The ROS 2,
-> MoveIt Servo, rosbridge, and robot simulation stack runs separately.
+> This repository contains the WebXR frontend, authenticated WebSocket proxy,
+> and reproducible ROS 2 FakeSystem backend configuration.
 
 ![Quest 3 hand tracking controlling the Panda simulation](docs/demo-preview.jpg)
 
@@ -44,7 +44,7 @@ The client publishes:
 - First-pose wrist calibration and configurable movement scaling
 - Thumb/index pinch detection for gripper commands
 - Explicit teleoperation enable/disable controls
-- Same-origin WebSocket proxy from `/rosbridge` to local rosbridge on port 9090
+- Token-protected WebSocket proxy from `/rosbridge` to local rosbridge on port 9090
 
 ## Requirements
 
@@ -57,15 +57,17 @@ The client publishes:
 ## Quick start
 
 1. Start the ROS 2 simulation, MoveIt Servo, and rosbridge on port `9090`.
-2. Start the frontend from this directory:
+2. Generate a temporary token and start the frontend:
 
    ```sh
+   export TELEOP_TOKEN="$(openssl rand -hex 32)"
    node server.js
    ```
 
 3. For desktop inspection, open `http://localhost:8000`.
-4. For Quest 3, expose port `8000` through an HTTPS tunnel and open that URL in
-   the headset browser.
+4. For Quest 3, expose port `8000` through an HTTPS tunnel and open
+   `https://<tunnel-host>/#token=<TELEOP_TOKEN>` in the headset browser. Do not
+   share or commit the token.
 5. Wait for `WS connected`, select **Enable Teleop**, and then select
    **Start WebXR**. The first tracked wrist position becomes the motion origin.
 
@@ -79,9 +81,10 @@ The main frontend constants are near the top of `teleop.js`:
 - `XR_SESSION_MODE`: WebXR session mode (`immersive-ar`)
 - `HAND_POSITION_SCALE`: wrist movement scale
 
-The proxy destination is configured in `server.js` with
-`ROSBRIDGE_HOST` and `ROSBRIDGE_PORT`. No tunnel URL or credentials are stored in
-the repository; the browser connects back through the page's current host.
+The proxy destination is configured in `server.js` with `ROSBRIDGE_HOST` and
+`ROSBRIDGE_PORT`. The server binds to localhost and refuses WebSocket upgrades
+unless `TELEOP_TOKEN` matches the browser cookie initialized from the URL
+fragment. No tunnel URL or credentials are stored in the repository.
 
 ## Safety
 
@@ -90,4 +93,3 @@ Before using a physical robot, add and validate workspace limits, calibration,
 smoothing, velocity/acceleration limits, watchdog behavior, collision checking,
 and an independent emergency stop. Always test topic values and coordinate
 directions in simulation first.
-

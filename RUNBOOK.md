@@ -9,8 +9,15 @@ Quest WebXR → ngrok HTTPS/WSS → server.js → rosbridge:9090
 → pose_to_twist_bridge.py → MoveIt Servo → ros2_control FakeSystem → RViz
 ```
 
-The commands below use the development container name `ros2_vr_rebuilt`. Adjust
-the container name and workspace paths for your environment.
+The commands below use the development container name `ros2_vr_rebuilt`. Build
+it from the repository root when it does not exist:
+
+```sh
+docker build -f docker/Dockerfile -t ros2-vr:humble .
+docker run -d --name ros2_vr_rebuilt \
+  -p 127.0.0.1:6080:80 -p 127.0.0.1:9090:9090 \
+  -v "$PWD/ros2:/opt/vr_teleop/ros2:ro" ros2-vr:humble
+```
 
 ## Start the Backend
 
@@ -24,7 +31,7 @@ Run the Panda FakeSystem, controllers, Servo, pose bridge, and RViz:
 
 ```sh
 docker exec -it ros2_vr_rebuilt bash -lc \
-  'cd /home/ubuntu/Desktop && source /opt/ros/humble/setup.bash && ros2 launch ./panda_servo_vr.launch.py'
+  'source /opt/ros/humble/setup.bash && ros2 launch /opt/vr_teleop/ros2/launch/panda_servo_vr.launch.py'
 ```
 
 In another terminal, start rosbridge:
@@ -49,11 +56,13 @@ Open RViz at `http://localhost:6080`. It uses `panda_live.rviz`, fixed frame
 From the repository root, run:
 
 ```sh
+export TELEOP_TOKEN="$(openssl rand -hex 32)"
 node server.js
 ngrok start teleop --config "<path-to-your-ngrok-config>,$PWD/ngrok.yml"
 ```
 
-Open the ngrok HTTPS URL on Quest 3. Wait for `WS connected`, press
+Open `https://<ngrok-host>/#token=<TELEOP_TOKEN>` on Quest 3. The fragment is
+removed after it initializes the browser cookie. Wait for `WS connected`, press
 `Enable Teleop`, then press `Start WebXR`. The first tracked wrist pose becomes
 the origin. Move slowly at first; pinch controls the gripper.
 

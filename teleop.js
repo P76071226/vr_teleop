@@ -3,6 +3,13 @@ function log(msg) {
   if (el) el.textContent += msg + "\n";
 }
 
+const tokenFromHash = new URLSearchParams(location.hash.slice(1)).get("token");
+if (tokenFromHash) {
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `teleop_token=${encodeURIComponent(tokenFromHash)}; Path=/; SameSite=Strict${secure}`;
+  history.replaceState(null, "", `${location.pathname}${location.search}`);
+}
+
 // ==================== ROSBRIDGE WSS ==========================
 const ROSBRIDGE_PROTOCOL = location.protocol === "https:" ? "wss:" : "ws:";
 const ROSBRIDGE_URL = `${ROSBRIDGE_PROTOCOL}//${location.host}/rosbridge`;
